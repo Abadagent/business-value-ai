@@ -5,26 +5,38 @@ from valuation_logic import calculate_business_value
 
 
 st.set_page_config(
-    page_title="Проверка цены бизнеса",
+    page_title="Проверка цены бизнеса за 2 минуты",
     layout="centered"
 )
 
-st.title("Проверка цены бизнеса за 2 минуты")
+
+def save_request(data: dict) -> None:
+    df = pd.DataFrame([data])
+    df.to_csv("requests_log.csv", mode="a", header=False, index=False)
+
+
+def save_lead(contact: str) -> None:
+    lead_df = pd.DataFrame([{"contact": contact.strip()}])
+    lead_df.to_csv("leads.csv", mode="a", header=False, index=False)
+
+
+st.title("Узнайте, завышена ли цена бизнеса, за 2 минуты")
 st.markdown(
     """
     **Для инвесторов, покупателей и продавцов бизнеса.**
 
     Сервис показывает:
     - ориентировочную стоимость бизнеса
+    - переплату или запас по цене
     - окупаемость сделки
     - ключевые риски
-    - переплату или запас по цене
-    - индекс сделки
+    - итоговый вердикт по сделке
     """
 )
 
 st.info("Сейчас доступна 1 бесплатная экспресс-оценка.")
 
+st.markdown("### Введите параметры бизнеса")
 
 industry = st.selectbox(
     "Отрасль",
@@ -71,12 +83,6 @@ revenue_confirmed = st.selectbox(
     ["Да", "Частично", "Нет"]
 )
 
-
-def save_request(data: dict) -> None:
-    df = pd.DataFrame([data])
-    df.to_csv("requests_log.csv", mode="a", header=False, index=False)
-
-
 if st.button("Проверить цену бизнеса"):
     data = {
         "industry": industry,
@@ -91,7 +97,22 @@ if st.button("Проверить цену бизнеса"):
     save_request(data)
     result = calculate_business_value(data)
 
-    st.subheader("Результат оценки")
+    st.markdown("---")
+    st.subheader("Вердикт по сделке")
+
+    if "🔴" in result["deal_status"]:
+        st.error(result["deal_status"])
+    elif "🟢" in result["deal_status"]:
+        st.success(result["deal_status"])
+    else:
+        st.warning(result["deal_status"])
+
+    st.metric(
+        "Вероятная переплата / запас по цене",
+        f"{result['overpay_low']:,} — {result['overpay_high']:,} ₸"
+    )
+
+    st.markdown("### Результат оценки")
 
     col1, col2 = st.columns(2)
 
@@ -108,20 +129,31 @@ if st.button("Проверить цену бизнеса"):
             "Рекомендуемая цена покупки",
             f"{result['recommended_price']:,} ₸"
         )
-        st.metric(
-            "Переплата / запас цены",
-            f"{result['overpay_low']:,} — {result['overpay_high']:,} ₸"
-        )
         st.metric("Индекс сделки", result["deal_status"])
+        st.metric("Месячная прибыль", f"{monthly_profit:,} ₸")
 
-    st.write("### Риски")
+    st.markdown("### Ключевые риски")
     if result["risks"]:
         for risk in result["risks"]:
             st.write(f"- {risk}")
     else:
         st.write("- Существенных рисков не выявлено")
 
-    st.success("Оценка рассчитана")
+    st.markdown("---")
+    st.markdown("## Хотите сохранить результат и получить доступ к следующим оценкам?")
+    st.write("Оставьте WhatsApp или email для раннего доступа.")
+
+    lead_contact = st.text_input(
+        "WhatsApp или email",
+        key="lead_contact_after_result"
+    )
+
+    if st.button("Получить доступ"):
+        if lead_contact.strip():
+            save_lead(lead_contact)
+            st.success("Контакт сохранён. Мы свяжемся с вами.")
+        else:
+            st.warning("Введите WhatsApp или email")
 
 st.markdown("---")
 st.markdown(
@@ -130,15 +162,3 @@ st.markdown(
     Методика основана на базовых мультипликаторах и риск-корректировках.
     """
 )
-
-st.markdown("### Хотите больше оценок?")
-st.write("Скоро здесь появится платный доступ для повторных расчётов.")
-contact = st.text_input("Email или WhatsApp для раннего доступа")
-
-if st.button("Оставить контакт"):
-    if contact.strip():
-        lead_df = pd.DataFrame([{"contact": contact.strip()}])
-        lead_df.to_csv("leads.csv", mode="a", header=False, index=False)
-        st.success("Контакт сохранён")
-    else:
-        st.warning("Введите Email или WhatsApp")
