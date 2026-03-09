@@ -20,18 +20,18 @@ def save_lead(contact: str) -> None:
     lead_df.to_csv("leads.csv", mode="a", header=False, index=False)
 
 
-st.title("Проверка цены бизнеса за 2 минуты")
-st.write("Узнайте, завышена ли цена сделки.")
+st.title("Узнайте, завышена ли цена бизнеса, за 2 минуты")
+st.write("Быстрая проверка стоимости бизнеса перед покупкой или продажей.")
 
 st.markdown(
     """
-    - стоимость бизнеса  
+    - ориентировочная стоимость бизнеса  
     - переплата или запас по цене  
     - окупаемость сделки  
     """
 )
 
-st.info("1 экспресс-оценка сейчас доступна бесплатно.")
+st.info("🎁 Первая экспресс-оценка сейчас доступна бесплатно.")
 
 col1, col2 = st.columns(2)
 
@@ -82,7 +82,7 @@ revenue_confirmed = st.selectbox(
     ["Да", "Частично", "Нет"]
 )
 
-if st.button("Проверить цену"):
+if st.button("Проверить цену бизнеса"):
     data = {
         "industry": industry,
         "monthly_revenue": monthly_revenue,
@@ -97,7 +97,7 @@ if st.button("Проверить цену"):
     result = calculate_business_value(data)
 
     st.markdown("---")
-    st.subheader("Вердикт")
+    st.subheader("Вердикт по сделке")
 
     if "🔴" in result["deal_status"]:
         st.error(
